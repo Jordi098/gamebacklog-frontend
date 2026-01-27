@@ -3,7 +3,7 @@ import GameCreate from "./GameCreate.jsx";
 import GameDetail from "./GameDetail.jsx";
 import GameDelete from "./GameDelete.jsx";
 import GameEdit from "./GameEdit.jsx";
-import {useState} from "react";
+import NotFound from "./NotFound.jsx";
 import {createBrowserRouter, RouterProvider} from "react-router";
 import Layout from "./Layout.jsx";
 
@@ -19,7 +19,6 @@ const router = createBrowserRouter([
                 path: "/create",
                 element: <GameCreate/>,
             },
-
             {
                 path: "/games/:id",
                 element: <GameDetail/>,
@@ -31,6 +30,11 @@ const router = createBrowserRouter([
             {
                 path: "/games/edit/:id",
                 element: <GameEdit/>,
+            },
+
+            {
+                path: "*",
+                element: <NotFound/>,
             },
         ],
     },

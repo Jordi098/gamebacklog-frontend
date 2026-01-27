@@ -1,13 +1,17 @@
 import {useEffect, useState} from "react";
 import {useNavigate, useParams} from "react-router";
+import {useGames} from "./GamesContext.jsx";
 
 function GameEdit() {
     const {id} = useParams();
     const navigate = useNavigate();
+    const {patchGame} = useGames();
 
     const [title, setTitle] = useState("");
     const [status, setStatus] = useState("backlog");
+    const [description, setDescription] = useState("");
     const [hoursPlayed, setHoursPlayed] = useState(0);
+    const [rating, setRating] = useState("");
 
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
@@ -30,9 +34,12 @@ function GameEdit() {
                 }
 
                 const game = await res.json();
+
                 setTitle(game.title ?? "");
                 setStatus(game.status ?? "backlog");
+                setDescription(game.description ?? "");
                 setHoursPlayed(game.hoursPlayed ?? 0);
+                setRating(game.rating ?? ""); // ✅ nieuw
             } catch (e) {
                 console.error(e);
                 setError(e.message || "Er ging iets mis");
@@ -50,23 +57,16 @@ function GameEdit() {
         setSubmitting(true);
 
         try {
-            const res = await fetch(`http://145.24.237.41:8001/backlog/${id}`, {
-                method: "PATCH",
-                headers: {
-                    Accept: "application/json",
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                    title: title.trim(),
-                    status,
-                    hoursPlayed: Number(hoursPlayed) || 0,
-                }),
+            await patchGame(id, {
+                title: title.trim(),
+                status,
+                description,
+                hoursPlayed: Number(hoursPlayed) || 0,
+                rating:
+                    rating === ""
+                        ? null
+                        : Math.max(1, Math.min(10, Number(rating))), // ✅ validatie
             });
-
-            if (!res.ok) {
-                const text = await res.text();
-                throw new Error(text || "Opslaan mislukt");
-            }
 
             navigate(`/games/${id}`);
         } catch (e) {
@@ -80,7 +80,10 @@ function GameEdit() {
     if (loading) return <p className="p-6 text-gray-600">Loading…</p>;
 
     return (
-        <form onSubmit={handleSubmit} className="mx-auto max-w-xl rounded border bg-white p-6">
+        <form
+            onSubmit={handleSubmit}
+            className="mx-auto max-w-xl rounded border bg-white p-6"
+        >
             <h2 className="mb-4 text-xl font-bold">Edit game</h2>
 
             {error && <p className="mb-4 text-sm text-red-600">{error}</p>}
@@ -108,7 +111,17 @@ function GameEdit() {
                 </select>
             </div>
 
-            <div className="mb-6">
+            <div className="mb-4">
+                <label className="block text-sm font-medium">Description</label>
+                <textarea
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    rows={4}
+                    className="mt-1 w-full rounded border px-3 py-2"
+                />
+            </div>
+
+            <div className="mb-4">
                 <label className="block text-sm font-medium">Hours played</label>
                 <input
                     type="number"
@@ -116,6 +129,21 @@ function GameEdit() {
                     value={hoursPlayed}
                     onChange={(e) => setHoursPlayed(e.target.value)}
                     className="mt-1 w-full rounded border px-3 py-2"
+                />
+            </div>
+
+            <div className="mb-6">
+                <label className="block text-sm font-medium">
+                    Rating (1–10, optioneel)
+                </label>
+                <input
+                    type="number"
+                    min="1"
+                    max="10"
+                    value={rating}
+                    onChange={(e) => setRating(e.target.value)}
+                    className="mt-1 w-full rounded border px-3 py-2"
+                    placeholder="laat leeg voor null"
                 />
             </div>
 

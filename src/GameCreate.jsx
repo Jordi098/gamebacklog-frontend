@@ -1,9 +1,10 @@
 import {useState} from "react";
 import {useNavigate} from "react-router";
 
-function GameCreate({onCreated}) {
+function GameCreate() {
     const [formData, setFormData] = useState({
         title: "",
+        description: "",
         status: "backlog",
         hoursPlayed: 0,
         rating: "",
@@ -27,18 +28,21 @@ function GameCreate({onCreated}) {
             setError("Vul title en status in.");
             return;
         }
+
         const payload = {
             title: formData.title.trim(),
+            description: formData.description.trim(),
             status: formData.status,
             hoursPlayed: Number(formData.hoursPlayed) || 0,
             rating:
-                formData.rating === "" ? null : Math.max(1, Math.min(10, Number(formData.rating))),
+                formData.rating === ""
+                    ? null
+                    : Math.max(1, Math.min(10, Number(formData.rating))),
         };
 
         setSubmitting(true);
 
         try {
-            // ⚠️ Zet dit naar jouw eigen backend URL
             const response = await fetch("http://145.24.237.41:8001/backlog/", {
                 method: "POST",
                 headers: {
@@ -55,12 +59,8 @@ function GameCreate({onCreated}) {
 
             const created = await response.json();
 
-            onCreated?.(created);
-
-
             const id = created.id || created._id;
             navigate(`/games/${id}`);
-
         } catch (err) {
             console.error(err);
             setError("Toevoegen mislukt. Check console.");
@@ -76,6 +76,7 @@ function GameCreate({onCreated}) {
         >
             <h2 className="mb-4 text-xl font-bold">Nieuwe game</h2>
 
+
             <div className="mb-4">
                 <label className="block text-sm font-medium">Title</label>
                 <input
@@ -85,6 +86,20 @@ function GameCreate({onCreated}) {
                     className="mt-1 w-full rounded border px-3 py-2"
                 />
             </div>
+
+
+            <div className="mb-4">
+                <label className="block text-sm font-medium">Description</label>
+                <textarea
+                    name="description"
+                    value={formData.description}
+                    onChange={handleChange}
+                    rows={4}
+                    className="mt-1 w-full rounded border px-3 py-2"
+                    placeholder="Korte beschrijving van de game…"
+                />
+            </div>
+
 
             <div className="mb-4">
                 <label className="block text-sm font-medium">Status</label>
@@ -101,6 +116,7 @@ function GameCreate({onCreated}) {
                 </select>
             </div>
 
+
             <div className="mb-4">
                 <label className="block text-sm font-medium">Hours played</label>
                 <input
@@ -113,8 +129,11 @@ function GameCreate({onCreated}) {
                 />
             </div>
 
+
             <div className="mb-4">
-                <label className="block text-sm font-medium">Rating (1-10, optioneel)</label>
+                <label className="block text-sm font-medium">
+                    Rating (1–10, optioneel)
+                </label>
                 <input
                     type="number"
                     name="rating"
