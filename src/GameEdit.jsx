@@ -5,7 +5,7 @@ import {useGames} from "./GamesContext.jsx";
 function GameEdit() {
     const {id} = useParams();
     const navigate = useNavigate();
-    const {patchGame} = useGames();
+    const {fetchOne, patchGame} = useGames();
 
     const [title, setTitle] = useState("");
     const [status, setStatus] = useState("backlog");
@@ -18,38 +18,44 @@ function GameEdit() {
     const [error, setError] = useState("");
 
     useEffect(() => {
-        async function fetchGame() {
+        let cancelled = false;
+
+        (async () => {
             setLoading(true);
             setError("");
 
             try {
-                const res = await fetch(`http://145.24.237.41:8001/backlog/${id}`, {
-                    headers: {Accept: "application/json"},
-                    cache: "no-store",
-                });
+                const result = await fetchOne(id);
+                if (cancelled) return;
 
-                if (!res.ok) {
-                    const text = await res.text();
-                    throw new Error(text || "Ophalen mislukt");
+                if (result?.notFound) {
+                    navigate("/", {replace: true});
+                    return;
                 }
 
-                const game = await res.json();
+                if (result?.error) {
+                    setError(result.message || "Laden mislukt");
+                    return;
+                }
 
-                setTitle(game.title ?? "");
-                setStatus(game.status ?? "backlog");
-                setDescription(game.description ?? "");
-                setHoursPlayed(game.hoursPlayed ?? 0);
-                setRating(game.rating ?? "");
+                const game = result?.data;
+
+                setTitle(game?.title ?? "");
+                setStatus(game?.status ?? "backlog");
+                setDescription(game?.description ?? "");
+                setHoursPlayed(game?.hoursPlayed ?? 0);
+                setRating(game?.rating == null ? "" : String(game.rating));
             } catch (e) {
-                console.error(e);
-                setError(e.message || "Er ging iets mis");
+                if (!cancelled) setError(e?.message || "Laden mislukt");
             } finally {
-                setLoading(false);
+                if (!cancelled) setLoading(false);
             }
-        }
+        })();
 
-        fetchGame();
-    }, [id]);
+        return () => {
+            cancelled = true;
+        };
+    }, [id, fetchOne, navigate]);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -71,7 +77,7 @@ function GameEdit() {
             navigate(`/games/${id}`);
         } catch (e) {
             console.error(e);
-            setError(e.message || "Opslaan mislukt");
+            setError(e?.message || "Opslaan mislukt");
         } finally {
             setSubmitting(false);
         }

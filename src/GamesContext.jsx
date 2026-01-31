@@ -7,8 +7,6 @@ const API = "http://145.24.237.41:8001/backlog";
 export function GamesProvider({children}) {
     const [items, setItems] = useState([]);
     const [pagination, setPagination] = useState(null);
-
-    // filters + pagination state
     const [page, setPage] = useState(1);
     const [limit, setLimit] = useState(5);
     const [status, setStatus] = useState("");
@@ -42,14 +40,30 @@ export function GamesProvider({children}) {
 
     // detail ophalen (detail page)
     const fetchOne = useCallback(async (id) => {
-        const res = await fetch(`${API}/${id}`, {
-            headers: {Accept: "application/json"},
-            cache: "no-store"
-        });
-        if (res.status === 404) return {notFound: true};
-        if (!res.ok) return {error: true, message: await res.text()};
-        return {data: await res.json()};
+        try {
+            const res = await fetch(`${API}/${id}`, {
+                headers: {Accept: "application/json"},
+                cache: "no-store",
+            });
+
+            if (res.status === 404) return {notFound: true};
+
+            const json = await res.json().catch(() => null);
+
+            if (json?.message === "Failed to fetch game") {
+                return {notFound: true};
+            }
+
+            if (!res.ok) {
+                return {error: true, message: json?.message || "Laden mislukt"};
+            }
+
+            return {data: json};
+        } catch (e) {
+            return {error: true, message: e?.message || "API niet bereikbaar"};
+        }
     }, []);
+
 
     const createGame = useCallback(async (payload) => {
         const res = await fetch(API, {
@@ -74,7 +88,6 @@ export function GamesProvider({children}) {
     }, [fetchList]);
 
     const deleteGame = useCallback(async (id) => {
-        setItems(prev => prev.filter(g => String(g.id) !== String(id)));
 
         const res = await fetch(`${API}/${id}`, {
             method: "DELETE",

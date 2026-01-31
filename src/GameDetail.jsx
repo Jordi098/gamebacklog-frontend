@@ -1,49 +1,65 @@
-import {Link, useLocation, useParams} from "react-router";
-import {useCallback, useEffect, useState} from "react";
+import {Link, useNavigate, useParams} from "react-router";
+import {useEffect, useState} from "react";
+import {useGames} from "./GamesContext";
+import * as router from "react-router";
 
 function GameDetail() {
     const {id} = useParams();
-    const location = useLocation();
-
+    const {fetchOne} = useGames();
+    const navigate = useNavigate();
     const [item, setItem] = useState(null);
     const [loading, setLoading] = useState(true);
-    const [notFound, setNotFound] = useState(false);
     const [error, setError] = useState("");
-
-    const loadGame = useCallback(async () => {
-        setLoading(true);
-        setNotFound(false);
-        setError("");
-
-        try {
-            const res = await fetch(`http://145.24.237.41:8001/backlog/${id}`, {
-                headers: {Accept: "application/json"},
-                cache: "no-store",
-            });
-
-
-            if (!res.ok) {
-                const text = await res.text();
-                setError(text || `Server error (${res.status})`);
-                setItem(null);
-                return;
-            }
-
-            const data = await res.json();
-            setItem(data);
-        } catch (e) {
-            setError("Netwerkfout: kan server niet bereiken.");
-            setItem(null);
-        } finally {
-            setLoading(false);
-        }
-    }, [id]);
+    const [notFound, setNotFound] = useState(false);
 
     useEffect(() => {
-        loadGame();
-    }, [loadGame, location.key]);
+        let cancelled = false;
+
+        (async () => {
+            setLoading(true);
+            setError("");
+            setNotFound(false);
+
+            try {
+                const result = await fetchOne(id);
+
+                if (result.notFound) {
+                    navigate("/404", {replace: true});
+                    return;
+                }
+
+                if (result.error) {
+                    setError(result.message || "Laden mislukt");
+                    setItem(null);
+                    return;
+                }
+
+                setItem(result?.data ?? null);
+            } catch (e) {
+                if (!cancelled) setError(e?.message || "Laden mislukt");
+            } finally {
+                if (!cancelled) setLoading(false);
+            }
+        })();
+
+        return () => {
+            cancelled = true;
+        };
+    }, [id, fetchOne, router]);
 
     if (loading) return <p className="p-6 text-gray-600">Laden…</p>;
+
+    if (notFound) {
+        return <p className="p-6 text-gray-600">Game niet gevonden.</p>;
+    }
+
+    if (error) {
+        return <p className="p-6 text-red-600">{error}</p>;
+    }
+
+    if (!item) {
+        return <p className="p-6 text-gray-600">Geen data.</p>;
+    }
 
     return (
         <>
@@ -52,30 +68,29 @@ function GameDetail() {
             <p className="mt-2 text-gray-700">{item.status}</p>
             <p className="mt-2 text-gray-700">{item.description}</p>
 
-
             <p className="mt-2 text-gray-700">
-                Gespeeld: <span className="font-semibold">{item.hoursPlayed ?? 0}</span>
+                Gespeeld:{" "}
+                <span className="font-semibold">{item.hoursPlayed ?? 0}</span>
             </p>
 
             <p className="mt-2 text-gray-700">
-                Rating: <span className="font-semibold">{item.rating ?? 0}</span>
+                Rating:{" "}
+                <span className="font-semibold">
+          {item.rating == null ? "" : item.rating}
+        </span>
             </p>
 
             <div className="mt-6 flex gap-3">
                 <Link
                     to={`/games/delete/${id}`}
-                    className="inline-flex items-center rounded-md border border-red-300
-                     px-4 py-2 text-sm font-semibold text-red-600
-                     hover:bg-red-50 transition"
+                    className="inline-flex items-center rounded-md border border-red-300 px-4 py-2 text-sm font-semibold text-red-600 hover:bg-red-50 transition"
                 >
                     Delete
                 </Link>
 
                 <Link
                     to={`/games/edit/${id}`}
-                    className="inline-flex items-center rounded-md bg-sky-500
-                     px-4 py-2 text-sm font-semibold text-white
-                     hover:bg-sky-600 transition"
+                    className="inline-flex items-center rounded-md bg-sky-500 px-4 py-2 text-sm font-semibold text-white hover:bg-sky-600 transition"
                 >
                     Edit
                 </Link>

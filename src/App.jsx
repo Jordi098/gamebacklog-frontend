@@ -31,9 +31,9 @@ const router = createBrowserRouter([
                 path: "/games/edit/:id",
                 element: <GameEdit/>,
             },
-
+            
             {
-                path: "*",
+                path: "/404",
                 element: <NotFound/>,
             },
         ],
