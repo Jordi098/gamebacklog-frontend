@@ -1,4 +1,4 @@
-import {createContext, useContext, useEffect, useMemo, useState, useCallback} from "react";
+import {createContext, useContext, useEffect, useState, useCallback} from "react";
 
 const GamesContext = createContext(null);
 
@@ -22,7 +22,11 @@ export function GamesProvider({children}) {
             const url =
                 `${API}?page=${page}&limit=${limit}` + (status ? `&status=${status}` : "");
 
-            const res = await fetch(url, {headers: {Accept: "application/json"}});
+            const res = await fetch(url, {
+                headers: {Accept: "application/json"},
+                cache: "no-store",
+            });
+
             const json = await res.json();
 
             setItems(json.items ?? []);
@@ -38,7 +42,10 @@ export function GamesProvider({children}) {
 
     // detail ophalen (detail page)
     const fetchOne = useCallback(async (id) => {
-        const res = await fetch(`${API}/${id}`, {headers: {Accept: "application/json"}, cache: "no-store"});
+        const res = await fetch(`${API}/${id}`, {
+            headers: {Accept: "application/json"},
+            cache: "no-store"
+        });
         if (res.status === 404) return {notFound: true};
         if (!res.ok) return {error: true, message: await res.text()};
         return {data: await res.json()};
@@ -67,17 +74,28 @@ export function GamesProvider({children}) {
     }, [fetchList]);
 
     const deleteGame = useCallback(async (id) => {
-        const res = await fetch(`${API}/${id}`, {method: "DELETE", headers: {Accept: "application/json"}});
-        if (!res.ok && res.status !== 204) throw new Error(await res.text());
+        setItems(prev => prev.filter(g => String(g.id) !== String(id)));
+
+        const res = await fetch(`${API}/${id}`, {
+            method: "DELETE",
+            headers: {Accept: "application/json"},
+        });
+
+        if (!res.ok && res.status !== 204) {
+            await fetchList();
+            throw new Error(await res.text());
+        }
+
         await fetchList();
     }, [fetchList]);
 
+
     // filter 2: client-side search over huidige pagina
-    const visibleItems = useMemo(() => {
-        const q = query.trim().toLowerCase();
-        if (!q) return items;
-        return items.filter(g => (g.title ?? "").toLowerCase().includes(q));
-    }, [items, query]);
+    const visibleItems = items.filter(g =>
+        !query ||
+        (g.title ?? "").toLowerCase().includes(query.toLowerCase())
+    );
+
 
     const value = {
         items: visibleItems,

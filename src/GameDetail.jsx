@@ -21,11 +21,6 @@ function GameDetail() {
                 cache: "no-store",
             });
 
-            if (res.status === 404) {
-                setNotFound(true);
-                setItem(null);
-                return;
-            }
 
             if (!res.ok) {
                 const text = await res.text();
@@ -49,29 +44,6 @@ function GameDetail() {
     }, [loadGame, location.key]);
 
     if (loading) return <p className="p-6 text-gray-600">Laden…</p>;
-
-    if (notFound) {
-        return (
-            <div className="p-6 text-center">
-                <h1 className="text-3xl font-bold">404</h1>
-                <p className="mt-2 text-gray-700">Game niet gevonden.</p>
-                <Link to="/" className="mt-4 inline-block text-sky-600 font-semibold hover:underline">
-                    ← Terug naar Home
-                </Link>
-            </div>
-        );
-    }
-
-    if (error) {
-        return (
-            <div className="p-6 text-center">
-                <h1 className="text-2xl font-bold">Er ging iets mis</h1>
-                <Link to="/" className="mt-4 inline-block text-sky-600 font-semibold hover:underline">
-                    ← Terug naar Home
-                </Link>
-            </div>
-        );
-    }
 
     return (
         <>

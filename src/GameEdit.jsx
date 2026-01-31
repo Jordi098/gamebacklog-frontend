@@ -39,7 +39,7 @@ function GameEdit() {
                 setStatus(game.status ?? "backlog");
                 setDescription(game.description ?? "");
                 setHoursPlayed(game.hoursPlayed ?? 0);
-                setRating(game.rating ?? ""); // ✅ nieuw
+                setRating(game.rating ?? "");
             } catch (e) {
                 console.error(e);
                 setError(e.message || "Er ging iets mis");
@@ -65,7 +65,7 @@ function GameEdit() {
                 rating:
                     rating === ""
                         ? null
-                        : Math.max(1, Math.min(10, Number(rating))), // ✅ validatie
+                        : Math.max(1, Math.min(10, Number(rating))),
             });
 
             navigate(`/games/${id}`);
